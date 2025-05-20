@@ -2,7 +2,7 @@ name: Docker CI
 
 on:
   push:
-    branches: [ Project ]  # or main, 원하는 브랜치명
+    branches: [ Project ]  # 원하는 브랜치명 (예: main)
 
 jobs:
   build-and-push:
@@ -24,4 +24,8 @@ jobs:
           context: .
           push: true
           tags: cozynobell/weather-map-app:latest
+          build-args: |
+            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
 
