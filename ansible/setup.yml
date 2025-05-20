@@ -4,45 +4,96 @@
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
-    - name: Python 3 설치 (Ubuntu 또는 Amazon Linux)
+    - name: Python 3 설치
       raw: |
         if ! command -v python3 >/dev/null 2>&1; then
-          if command -v apt >/dev/null 2>&1; then
-            apt update && apt install -y python3
-          elif command -v yum >/dev/null 2>&1; then
-            yum install -y python3
-          fi
+          yum install -y python3
         fi
 
-    - name: 패키지 업데이트
-      apt:
-        update_cache: yes
-        upgrade: yes
-      when: ansible_facts.os_family == "Debian"
-
-    - name: Node.js 설치 (18.x)
-      shell: curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && apt install -y nodejs
-      when: ansible_facts.os_family == "Debian"
+    - name: Node.js 18 설치
+      shell: |
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+        yum install -y nodejs
 
     - name: Docker 설치
-      apt:
-        name: docker.io
+      yum:
+        name: docker
         state: present
-      when: ansible_facts.os_family == "Debian"
+
+    - name: Docker 데몬 시작 및 부팅시 자동 실행
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: ec2-user를 docker 그룹에 추가
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
 
     - name: Git 설치
-      apt:
+      yum:
         name: git
         state: present
-      when: ansible_facts.os_family == "Debian"
+
+    - name: OpenSSL 1.1 설치 (MySQL 의존성 해결)
+      yum:
+        name: openssl-devel
+        state: present
+
+    - name: MySQL 리포지토리 추가 (Amazon Linux 2023)
+      shell: |
+        sudo yum install -y https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql80-community-release-el8-5.noarch.rpm
+      args:
+        chdir: /home/ec2-user
+      when: ansible_facts.os_family == "RedHat"
+
+    - name: MySQL 설치
+      yum:
+        name: mysql-community-server
+        state: present
+      when: ansible_facts.os_family == "RedHat"
+
+    - name: MySQL 서비스 시작 및 활성화
+      systemd:
+        name: mysqld
+        state: started
+        enabled: yes
+      when: ansible_facts.os_family == "RedHat"
+
+    - name: MySQL 초기 설정 및 DB/테이블 생성
+      shell: |
+        mysql -u root <<EOF
+        ALTER USER 'root'@'localhost' IDENTIFIED BY '1234';
+        CREATE DATABASE IF NOT EXISTS weatherapp;
+        USE weatherapp;
+        CREATE TABLE IF NOT EXISTS users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS favorites (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_email VARCHAR(255) NOT NULL,
+          lat FLOAT NOT NULL,
+          lon FLOAT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        EOF
+      args:
+        executable: /bin/bash
+      when: ansible_facts.os_family == "RedHat"
 
     - name: 프로젝트 디렉토리 생성
       file:
         path: /home/ec2-user/weather-map-app
         state: directory
+        owner: ec2-user
+        group: ec2-user
         mode: '0755'
 
-    - name: 로컬 프로젝트 복사
+    - name: 프로젝트 전체 복사 (로컬 → EC2)
       synchronize:
         src: ../..
         dest: /home/ec2-user/weather-map-app
@@ -53,16 +104,22 @@
       copy:
         src: /root/weather-map-app/.env
         dest: /home/ec2-user/weather-map-app/.env
-         
-    - name: Node.js 설치 (Ubuntu)
-      shell: curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && apt install -y nodejs
-      when: ansible_facts.os_family == "Debian"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0600'
 
-    - name: Node.js 설치 (Amazon Linux)
-      shell: |
-        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-        yum install -y nodejs
-      when: ansible_facts.os_family == "RedHat"
+    - name: deploy.sh 복사
+      copy:
+        src: /root/weather-map-app/deploy.sh
+        dest: /home/ec2-user/weather-map-app/deploy.sh
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Node.js 패키지 설치 (npm install)
+      npm:
+        path: /home/ec2-user/weather-map-app
+        production: yes
 
     - name: 서버 실행 (백그라운드 실행)
       shell: nohup node server.mjs > app.log 2>&1 &
