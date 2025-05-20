@@ -21,11 +21,14 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          push: true
+          context: .  # 현재 디렉토리에서 Docker 빌드를 진행
+          push: true  # Docker Hub로 푸시
           tags: cozynobell/weather-map-app:latest
           build-args: |
-            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}  # GitHub Secrets에서 가져오는 환경 변수
             WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
-
+            DB_HOST=${{ secrets.DB_HOST }}  # DB_HOST 환경 변수 추가
+            DB_USER=${{ secrets.DB_USER }}  # DB_USER 환경 변수 추가
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}  # DB_PASSWORD 환경 변수 추가
+            DB_NAME=${{ secrets.DB_NAME }}  # DB_NAME 환경 변수 추가
