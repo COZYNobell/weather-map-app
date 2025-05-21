@@ -1,11 +1,10 @@
-version: '3'
 services:
   mysql:
     image: mysql:8.0
     container_name: mysql-container
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}   # GitHub Secrets에서 DB_PASSWORD 사용
-      MYSQL_DATABASE: ${DB_NAME}             # GitHub Secrets에서 DB_NAME 사용
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     ports:
       - "3306:3306"
     networks:
@@ -19,15 +18,16 @@ services:
     depends_on:
       - mysql
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}  # GitHub Secrets에서 GOOGLE_API_KEY 사용
-      - WEATHER_API_KEY=${WEATHER_API_KEY}  # GitHub Secrets에서 WEATHER_API_KEY 사용
-      - JWT_SECRET=${JWT_SECRET}   # GitHub Secrets에서 JWT_SECRET 사용
-      - DB_HOST=mysql-container   # DB_HOST는 MySQL 컨테이너 이름으로 설정
-      - DB_USER=${DB_USER}         # GitHub Secrets에서 DB_USER 사용
-      - DB_PASSWORD=${DB_PASSWORD} # GitHub Secrets에서 DB_PASSWORD 사용
-      - DB_NAME=${DB_NAME}         # GitHub Secrets에서 DB_NAME 사용
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_HOST=mysql  # ✅ `mysql-container` 아닌 `mysql`로 연결 (Compose 서비스명)
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
     networks:
       - weather-network
+    command: sh -c "sleep 5 && node server.mjs"  # ✅ DB 대기 시간 확보
 
 networks:
   weather-network:

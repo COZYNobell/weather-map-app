@@ -1,2 +1,23 @@
+# Node modules
 node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# dotenv 환경 파일 (민감 정보)
 .env
+
+# PM2 로그 및 설정
+.pnpm-debug.log
+.pm2
+ecosystem.config.js
+
+# OS별 시스템 파일
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+

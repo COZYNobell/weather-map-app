@@ -12,10 +12,20 @@ router.post('/', express.json(), async (req, res) => {
   }
 
   try {
+    // 사용자 ID 조회
+    const [users] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: '사용자 없음' });
+    }
+
+    const userId = users[0].id;
+
+    // 즐겨찾기 저장
     await db.query(
-      'INSERT INTO favorites (email, lat, lon) VALUES (?, ?, ?)',
-      [email, lat, lon]
+      'INSERT INTO favorites (user_id, lat, lon) VALUES (?, ?, ?)',
+      [userId, lat, lon]
     );
+
     res.json({ message: '즐겨찾기 저장 완료!' });
   } catch (err) {
     console.error('❌ DB 저장 실패:', err.message);
