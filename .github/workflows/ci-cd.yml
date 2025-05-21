@@ -3,7 +3,7 @@ name: CI/CD with Webhook
 on:
   push:
     branches:
-      - Project
+      - Project  # ✅ 사용하는 브랜치 이름
 
 jobs:
   build-and-deploy:
@@ -19,7 +19,7 @@ jobs:
           node-version: '20'
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: ✅ Run tests
         run: npm test
@@ -38,6 +38,6 @@ jobs:
           docker build -t cozynobell/weather-map-app:latest .
           docker push cozynobell/weather-map-app:latest
 
-      - name: 🚀 Call webhook on EC2
+      - name: 🚀 Trigger EC2 webhook for deployment
         run: curl -X POST http://${{ secrets.EC2_IP }}:4000/webhook
 
